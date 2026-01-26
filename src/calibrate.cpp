@@ -107,7 +107,8 @@ inline std::vector<std::string> getSuccessorBodies(const mc_rbdyn::Robot & robot
     successorBodyNames.push_back(rootBody);
   }
   computeSuccBodyNames = [&successorBodyNames, &successorJointsGraph, &robot,
-                          &computeSuccBodyNames](const std::vector<std::string> & succJoints) {
+                          &computeSuccBodyNames](const std::vector<std::string> & succJoints)
+  {
     for(const auto & joint : succJoints)
     {
       auto successorBodyIdx = robot.mb().successor(robot.mb().jointIndexByName(joint));

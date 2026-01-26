@@ -40,11 +40,15 @@ void PressureCheck::check(mc_control::fsm::Controller & ctl)
     ctl.gui()->removeElement({}, "Error");
     ctl.gui()->removeElement({}, "Continue");
     ctl.gui()->addElement(
-        {}, mc_rtc::gui::Label("Error", [errorSensors]() {
-          return fmt::format("Excessive force detected on sensors [{}], please make sure that they are not in contact "
-                             "and that the calibration motion can be safely executed, then click on \"Continue\".",
-                             mc_rtc::io::to_string(errorSensors));
-        }));
+        {}, mc_rtc::gui::Label(
+                "Error",
+                [errorSensors]()
+                {
+                  return fmt::format(
+                      "Excessive force detected on sensors [{}], please make sure that they are not in contact "
+                      "and that the calibration motion can be safely executed, then click on \"Continue\".",
+                      mc_rtc::io::to_string(errorSensors));
+                }));
     ctl.gui()->addElement({}, mc_rtc::gui::Button("Continue", [this, &ctl]() { check(ctl); }));
   }
 }

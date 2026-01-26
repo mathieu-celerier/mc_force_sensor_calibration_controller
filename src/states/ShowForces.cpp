@@ -21,8 +21,7 @@ void ShowForces::addWrenchPlot(const std::string & name,
                   name + " (x)", [&fs]() { return fs.wrench().force().x(); }, Color::Red, Style::Dashed),
               plot::Y(
                   name + " (y)", [&fs]() { return fs.wrench().force().y(); }, Color::Green, Style::Dashed),
-              plot::Y(
-                  name + " (z)", [&fs]() { return fs.wrench().force().z(); }, Color::Blue, Style::Dashed));
+              plot::Y(name + " (z)", [&fs]() { return fs.wrench().force().z(); }, Color::Blue, Style::Dashed));
   plots_.push_back(name);
 }
 
@@ -68,9 +67,9 @@ void ShowForces::addWrenchVector(const std::string & name,
                                  const mc_rbdyn::Robot & robot,
                                  const mc_rbdyn::ForceSensor & fs)
 {
-  gui.addElement(category_,
-                 Force(
-                     name, forceConfig_, [&fs]() { return fs.wrench(); }, [&fs, &robot]() { return fs.X_0_f(robot); }));
+  gui.addElement(
+      category_,
+      Force(name, forceConfig_, [&fs]() { return fs.wrench(); }, [&fs, &robot]() { return fs.X_0_f(robot); }));
 }
 
 void ShowForces::addWrenchWithoutGravityVector(const std::string & name,
@@ -113,10 +112,8 @@ void ShowForces::start(mc_control::fsm::Controller & ctl)
 
     ctl.gui()->addElement(
         fsCategory, ElementsStacking::Horizontal,
-        Button("Plot wrench (without gravity)",
-               [this, &ctl, &fs]() {
-                 addWrenchWithoutGravityPlot("Wrench without gravity " + fs.name(), *ctl.gui(), ctl.robot(), fs);
-               }),
+        Button("Plot wrench (without gravity)", [this, &ctl, &fs]()
+               { addWrenchWithoutGravityPlot("Wrench without gravity " + fs.name(), *ctl.gui(), ctl.robot(), fs); }),
         Button("Stop wrench (without gravity)", [this, &ctl, &fs]() { ctl.gui()->removePlot("Wrench " + fs.name()); }));
 
     ctl.gui()->addElement(
@@ -125,15 +122,12 @@ void ShowForces::start(mc_control::fsm::Controller & ctl)
                [this, &ctl, &robot, &fs]() { addWrenchVector("Force " + fs.name(), *ctl.gui(), robot, fs); }),
         Button("Remove (raw)", [this, &ctl, &fs]() { ctl.gui()->removeElement(category_, "Force " + fs.name()); }));
 
-    ctl.gui()->addElement(fsCategory, ElementsStacking::Horizontal,
-                          Button("Force (without gravity)",
-                                 [this, &ctl, &robot, &fs]() {
-                                   addWrenchWithoutGravityVector("Force " + fs.name() + " (without gravity)",
-                                                                 *ctl.gui(), robot, fs);
-                                 }),
-                          Button("Remove (without gravity)", [this, &ctl, &fs]() {
-                            ctl.gui()->removeElement(category_, "Force " + fs.name() + " (without gravity)");
-                          }));
+    ctl.gui()->addElement(
+        fsCategory, ElementsStacking::Horizontal,
+        Button("Force (without gravity)", [this, &ctl, &robot, &fs]()
+               { addWrenchWithoutGravityVector("Force " + fs.name() + " (without gravity)", *ctl.gui(), robot, fs); }),
+        Button("Remove (without gravity)", [this, &ctl, &fs]()
+               { ctl.gui()->removeElement(category_, "Force " + fs.name() + " (without gravity)"); }));
 
     std::vector<std::string> surfaces;
     for(const auto & surface : robot.surfaces())
@@ -157,7 +151,8 @@ void ShowForces::start(mc_control::fsm::Controller & ctl)
       surfaces_[name] = surfaces.front();
       ctl.gui()->addElement(fsCategory, mc_rtc::gui::ComboInput(
                                             "Surface", surfaces, [this, name]() { return surfaces_[name]; },
-                                            [this, name](const std::string & surface) {
+                                            [this, name](const std::string & surface)
+                                            {
                                               mc_rtc::log::info("[ShowForces] Surface {} selected", surface);
                                               surfaces_[name] = surface;
                                             }));
@@ -165,21 +160,23 @@ void ShowForces::start(mc_control::fsm::Controller & ctl)
 
       ctl.gui()->addElement(fsCategory, ElementsStacking::Horizontal,
                             Button("Plot surface wrench (without gravity)",
-                                   [this, &ctl, &fs]() {
+                                   [this, &ctl, &fs]()
+                                   {
                                      addWrenchWithoutGravityPlot("Wrench without gravity " + fs.name(),
                                                                  surfaces_[fs.name()], *ctl.gui(), ctl.robot(), fs);
                                    }),
                             Button("Stop surface wrench (without gravity)",
                                    [this, &ctl, &fs]() { ctl.gui()->removePlot("Wrench " + fs.name()); }));
-      ctl.gui()->addElement(fsCategory, ElementsStacking::Horizontal,
-                            Button("Surface Force (without gravity)",
-                                   [this, &ctl, &robot, &fs]() {
-                                     addWrenchWithoutGravityVector("Surface Force " + fs.name() + " (without gravity)",
-                                                                   surfaces_[fs.name()], *ctl.gui(), robot, fs);
-                                   }),
-                            Button("Remove Surface Force (without gravity)", [this, &ctl, &fs]() {
-                              ctl.gui()->removeElement(category_, "Surface Force " + fs.name() + " (without gravity)");
-                            }));
+      ctl.gui()->addElement(
+          fsCategory, ElementsStacking::Horizontal,
+          Button("Surface Force (without gravity)",
+                 [this, &ctl, &robot, &fs]()
+                 {
+                   addWrenchWithoutGravityVector("Surface Force " + fs.name() + " (without gravity)",
+                                                 surfaces_[fs.name()], *ctl.gui(), robot, fs);
+                 }),
+          Button("Remove Surface Force (without gravity)", [this, &ctl, &fs]()
+                 { ctl.gui()->removeElement(category_, "Surface Force " + fs.name() + " (without gravity)"); }));
     }
   }
   output("OK");

@@ -61,17 +61,19 @@ void CheckResults::start(mc_control::fsm::Controller & ctl)
             "Wrenches raw(x)", [&sensor]() { return sensor.wrench().force().x(); }, Color::Red, Style::Dashed),
         plot::Y(
             "Wrenches raw(y)", [&sensor]() { return sensor.wrench().force().y(); }, Color::Green, Style::Dashed),
-        plot::Y(
-            "Wrenches raw(z)", [&sensor]() { return sensor.wrench().force().z(); }, Color::Blue, Style::Dashed));
+        plot::Y("Wrenches raw(z)", [&sensor]() { return sensor.wrench().force().z(); }, Color::Blue, Style::Dashed));
   }
 
   ctl.gui()->addElement(
       {}, Label("Status", []() { return "Check the plots to see if the calibrated measurements are close to zero"; }),
       Button("Save calibration", [this, &ctl]() { saveCalibration(ctl); }),
-      Button("Finish without saving", [this, &ctl]() { running_ = false; }), Button("Save and finish", [this, &ctl]() {
-        saveCalibration(ctl);
-        running_ = false;
-      }));
+      Button("Finish without saving", [this, &ctl]() { running_ = false; }),
+      Button("Save and finish",
+             [this, &ctl]()
+             {
+               saveCalibration(ctl);
+               running_ = false;
+             }));
 }
 
 bool CheckResults::run(mc_control::fsm::Controller & ctl_)

@@ -58,22 +58,26 @@ void CalibrationMotion::start(mc_control::fsm::Controller & ctl)
     double start_dt = period * (acos(sqrt(start - lower) / sqrt(upper - lower))) / PI;
     jointUpdates_.emplace_back(
         /* f(t): periodic function that moves the joint between its limits */
-        [this, postureTask, lower, upper, start_dt, period, name]() {
+        [this, postureTask, lower, upper, start_dt, period, name]()
+        {
           auto t = start_dt + dt_;
           auto q = lower + (upper - lower) * (1 + cos((2 * PI * t) / period)) / 2;
           postureTask->target({{name, {q}}});
         });
   }
 
-  ctl.gui()->addElement({},
-                        mc_rtc::gui::NumberSlider(
-                            "Progress", [this]() { return dt_; }, [](double) {}, 0, duration_),
-                        mc_rtc::gui::Button("Stop Motion", [this]() {
-                          mc_rtc::log::warning(
-                              "[{}] Motion was interrupted before it's planned duration ({:.2f}/{:.2f}s)", name(), dt_,
-                              duration_);
-                          interrupted_ = true;
-                        }));
+  ctl.gui()->addElement(
+      {},
+      mc_rtc::gui::NumberSlider(
+          "Progress", [this]() { return dt_; }, [](double) {}, 0, duration_),
+      mc_rtc::gui::Button("Stop Motion",
+                          [this]()
+                          {
+                            mc_rtc::log::warning(
+                                "[{}] Motion was interrupted before it's planned duration ({:.2f}/{:.2f}s)", name(),
+                                dt_, duration_);
+                            interrupted_ = true;
+                          }));
 }
 
 bool CalibrationMotion::run(mc_control::fsm::Controller & ctl_)

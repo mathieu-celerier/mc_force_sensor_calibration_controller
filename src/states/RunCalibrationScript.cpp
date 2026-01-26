@@ -11,15 +11,21 @@ namespace bfs = boost::filesystem;
 
 #ifdef __linux__
 
-#include <sched.h>
+#  include <sched.h>
 
 void reset_affinity()
 {
   cpu_set_t cpu_set;
   CPU_ZERO(&cpu_set);
-  for(unsigned int i = 0; i < std::thread::hardware_concurrency(); ++i) { CPU_SET(i, &cpu_set); }
+  for(unsigned int i = 0; i < std::thread::hardware_concurrency(); ++i)
+  {
+    CPU_SET(i, &cpu_set);
+  }
   int result = sched_setaffinity(0, sizeof(cpu_set_t), &cpu_set);
-  if(result != 0) { perror("sched_setaffinity"); }
+  if(result != 0)
+  {
+    perror("sched_setaffinity");
+  }
 }
 
 #else
@@ -83,48 +89,50 @@ void RunCalibrationScript::start(mc_control::fsm::Controller & ctl_)
   }
 
   auto & measurements = ctl_.datastore().get<SensorMeasurements>("measurements");
-  th_ = std::thread([&, verbose, guess_, this]() {
-    reset_affinity();
-    for(size_t i = 0; i < sensors_.size(); ++i)
-    {
-      const auto & s = sensors_[i];
-      const auto & initialGuess = guess_[i];
-      mc_rtc::log::info("Start calibration optimization for {}", s);
-      auto result = calibrate(ctl_.robot(), s, measurements.at(s), initialGuess, verbose);
-      success_ = result.success && success_;
-      if(result.success)
+  th_ = std::thread(
+      [&, verbose, guess_, this]()
       {
-        mc_rtc::log::success("Calibration succeeded for {}", s);
-        bfs::path out(outputPath_);
-        out += "/calib_data." + s;
-        std::ofstream ofs(out.string());
-        if(!ofs.good())
+        reset_affinity();
+        for(size_t i = 0; i < sensors_.size(); ++i)
         {
-          mc_rtc::log::error("Could not write temporary calibration file to {}", out.string());
-          continue;
+          const auto & s = sensors_[i];
+          const auto & initialGuess = guess_[i];
+          mc_rtc::log::info("Start calibration optimization for {}", s);
+          auto result = calibrate(ctl_.robot(), s, measurements.at(s), initialGuess, verbose);
+          success_ = result.success && success_;
+          if(result.success)
+          {
+            mc_rtc::log::success("Calibration succeeded for {}", s);
+            bfs::path out(outputPath_);
+            out += "/calib_data." + s;
+            std::ofstream ofs(out.string());
+            if(!ofs.good())
+            {
+              mc_rtc::log::error("Could not write temporary calibration file to {}", out.string());
+              continue;
+            }
+            ofs << result.mass << "\n";
+            ofs << result.rpy[0] << "\n";
+            ofs << result.rpy[1] << "\n";
+            ofs << result.rpy[2] << "\n";
+            ofs << result.com[0] << "\n";
+            ofs << result.com[1] << "\n";
+            ofs << result.com[2] << "\n";
+            ofs << result.offset[0] << "\n";
+            ofs << result.offset[1] << "\n";
+            ofs << result.offset[2] << "\n";
+            ofs << result.offset[3] << "\n";
+            ofs << result.offset[4] << "\n";
+            ofs << result.offset[5] << "\n";
+            mc_rtc::log::info("Wrote temporary calibration file to {}", out.string());
+          }
+          else
+          {
+            mc_rtc::log::error("Calibration failed for {}", s);
+          }
         }
-        ofs << result.mass << "\n";
-        ofs << result.rpy[0] << "\n";
-        ofs << result.rpy[1] << "\n";
-        ofs << result.rpy[2] << "\n";
-        ofs << result.com[0] << "\n";
-        ofs << result.com[1] << "\n";
-        ofs << result.com[2] << "\n";
-        ofs << result.offset[0] << "\n";
-        ofs << result.offset[1] << "\n";
-        ofs << result.offset[2] << "\n";
-        ofs << result.offset[3] << "\n";
-        ofs << result.offset[4] << "\n";
-        ofs << result.offset[5] << "\n";
-        mc_rtc::log::info("Wrote temporary calibration file to {}", out.string());
-      }
-      else
-      {
-        mc_rtc::log::error("Calibration failed for {}", s);
-      }
-    }
-    completed_ = true;
-  });
+        completed_ = true;
+      });
 #ifndef WIN32
   // Lower thread priority so that it has a lesser priority than the real time
   // thread
