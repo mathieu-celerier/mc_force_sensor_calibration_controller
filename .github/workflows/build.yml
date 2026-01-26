@@ -36,7 +36,7 @@ jobs:
         compiler: ${{ matrix.compiler }}
         build-type: ${{ matrix.build-type }}
         ubuntu: |
-          apt: libeigen3-dev libgflags-dev libgoogle-glog-dev libatlas-base-dev doxygen doxygen-latex libboost-all-dev libmc-rtc-dev
+          apt: libunwind-dev libeigen3-dev libgflags-dev libgoogle-glog-dev libatlas-base-dev doxygen doxygen-latex libboost-all-dev libmc-rtc-dev
           apt-mirrors:
             mc-rtc:
               cloudsmith: mc-rtc/head
