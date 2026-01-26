@@ -20,7 +20,7 @@ Running this controller requires:
 - [Ceres library](https://github.com/ceres-solver/ceres-solver)
   Note: On ubuntu 16.04 you need [ceres 1.14](https://github.com/ceres-solver/ceres-solver/tree/1.14.x)
 - [mc_rtc](https://github.com/jrl-umi3218/mc_rtc)
-- `C++14`
+- `C++17`
 
 How to use
 ==
@@ -35,7 +35,7 @@ Enabled: ForceSensorCalibration
 - As a safety, the controller will first check that none of the sensor readings are above a specified threshold (ensures that floating base robots are in the air)
   - If the test fails, it'll display a message in the GUI. Click on `Continue` once the robot is in the air
 - Then you will be presented with a `Calibration` tab in the GUI:
-  - **Start calibration**: perform the calibration motion (going to an initial posture, and making each sensor move simultaneously. Once the motion is completed, it'll run the calibration optimization, and move to the next `Check calibration` state
+  - **Start calibration**: perform the calibration motion (going to an initial posture, and making each sensor move simultaneously). Once the motion is completed, it'll run the calibration optimization, and move to the next `Check calibration` state
   - **Check calibration**: loads the calibration results, perform the calibration motion again and displays live plots of the results. The calibrated force is expected to be close to `0N`. You can either save the current calibration results if you are satisfied using `Save calibration` or `Save and finish`, or stop without keeping the calibration results using `Finish without saving`. Note that saving might fail if you don't have the writing rights to the calibration directory.
   - **Show forces**: offers a GUI tab to display forces as arrows/live plots
   - Once the check calibration state is finished, the robot will go back to halfsitting.
