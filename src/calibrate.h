@@ -1,5 +1,7 @@
 #pragma once
 #include <mc_rbdyn/Robot.h>
+#include <fmt/format.h> // for fmt::format / format_to
+#include <fmt/ostream.h> // enables fmt fallback to operator<<
 #include <ostream>
 
 #include "Measurement.h"
@@ -15,7 +17,7 @@ struct InitialGuess
 inline std::ostream & operator<<(std::ostream & os, const InitialGuess & r)
 {
   // clang-format off
-  return os << fmt::format(
+  fmt::format_to(std::ostream_iterator<char>(os),
 R"(mass        : {}
 rpy         : {}, {}, {}
 com         : {}, {}, {}
@@ -25,7 +27,13 @@ force offset: {}, {}, {}, {}, {}, {})",
       r.com[0], r.com[1], r.com[2],
       r.offset[0], r.offset[1], r.offset[2], r.offset[3], r.offset[4], r.offset[5]);
   // clang-format on
+  return os;
 }
+
+template<typename Char>
+struct fmt::formatter<InitialGuess, Char> : ostream_formatter
+{
+};
 
 namespace mc_rtc
 {
