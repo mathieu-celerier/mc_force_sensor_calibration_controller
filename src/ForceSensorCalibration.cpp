@@ -27,6 +27,8 @@ ForceSensorCalibration::ForceSensorCalibration(mc_rbdyn::RobotModulePtr rm,
         "require estimation of the floating base orientation.",
         robot().name());
   }
+  datastore().make_call("getPostureTask",
+                        [this]() -> mc_tasks::PostureTaskPtr { return getPostureTask(robot().name()); });
   mc_rtc::log::success("ForceSensorCalibration init done");
 }
 
