@@ -3,6 +3,7 @@
 #include <fmt/format.h> // for fmt::format / format_to
 #include <fmt/ostream.h> // enables fmt fallback to operator<<
 #include <ostream>
+#include <sstream>
 
 #include "Measurement.h"
 
@@ -31,8 +32,16 @@ force offset: {}, {}, {}, {}, {}, {})",
 }
 
 template<typename Char>
-struct fmt::formatter<InitialGuess, Char> : ostream_formatter
+struct fmt::formatter<InitialGuess, Char> : fmt::formatter<std::basic_string_view<Char>, Char>
 {
+  template<typename FormatContext>
+  auto format(const InitialGuess & v, FormatContext & ctx) const
+  {
+    std::ostringstream os;
+    os << v;
+    auto s = os.str();
+    return fmt::formatter<std::basic_string_view<Char>, Char>::format(s, ctx);
+  }
 };
 
 namespace mc_rtc
