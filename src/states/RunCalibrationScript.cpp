@@ -59,11 +59,18 @@ void RunCalibrationScript::start(mc_control::fsm::Controller & ctl_)
   sensors_ = robotConf("forceSensors");
   bool verbose = robotConf("verboseSolver", false);
   std::vector<InitialGuess> guess_;
+  std::vector<Eigen::Matrix3d> inertia_;
   guess_.reserve(sensors_.size());
+  inertia_.reserve(sensors_.size());
 
   for(const auto & s : sensors_)
   {
     InitialGuess initialGuess;
+    bool includeParent = false;
+    if(robotConf.has("initialGuess") && robotConf("initialGuess").has(s))
+    {
+      robotConf("initialGuess")(s)("includeParent", includeParent);
+    }
     // If we have an initial guess section provided and it does not have
     // autocompute: true then we use the provided initial guess
     if(robotConf.has("initialGuess") && robotConf("initialGuess").has(s)
@@ -74,31 +81,34 @@ void RunCalibrationScript::start(mc_control::fsm::Controller & ctl_)
     }
     else
     { // No initial guess was provided and we need to autocompute it
-      bool verbose = false;
-      bool includeParent = false;
+      bool ivGuessVerbose = false;
       if(robotConf.has("initialGuess") && robotConf("initialGuess").has(s))
       {
-        robotConf("initialGuess")(s)("verbose", verbose);
-        robotConf("initialGuess")(s)("includeParent", includeParent);
+        robotConf("initialGuess")(s)("verbose", ivGuessVerbose);
       }
-      initialGuess = computeInitialGuessFromModel(ctl_.robot(), s, includeParent, verbose);
+      initialGuess = computeInitialGuessFromModel(ctl_.robot(), s, includeParent, ivGuessVerbose);
       mc_rtc::log::info("Computed initial guess for \"{}\" from model (includeParent: {}, verbose: {}):\n{} ", s,
-                        includeParent, verbose, initialGuess);
+                        includeParent, ivGuessVerbose, initialGuess);
     }
     guess_.push_back(initialGuess);
+    // The tool's own rotational inertia about its CoM (fixed, not fit) so the calibration can
+    // account for the tool's rotational inertial wrench during motion instead of assuming
+    // static equilibrium.
+    inertia_.push_back(computeToolInertia(ctl_.robot(), s, includeParent));
   }
 
   auto & measurements = ctl_.datastore().get<SensorMeasurements>("measurements");
   th_ = std::thread(
-      [&, verbose, guess_, this]()
+      [&, verbose, guess_, inertia_, this]()
       {
         reset_affinity();
         for(size_t i = 0; i < sensors_.size(); ++i)
         {
           const auto & s = sensors_[i];
           const auto & initialGuess = guess_[i];
+          const auto & I_com = inertia_[i];
           mc_rtc::log::info("Start calibration optimization for {}", s);
-          auto result = calibrate(ctl_.robot(), s, measurements.at(s), initialGuess, verbose);
+          auto result = calibrate(ctl_.robot(), s, measurements.at(s), initialGuess, I_com, verbose);
           success_ = result.success && success_;
           if(result.success)
           {

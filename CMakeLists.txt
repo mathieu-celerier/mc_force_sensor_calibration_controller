@@ -22,8 +22,12 @@ endif()
 
 find_package(mc_rtc REQUIRED)
 find_package(Ceres REQUIRED)
+find_package(Boost REQUIRED COMPONENTS filesystem)
 
 add_subdirectory(src)
+
+enable_testing()
+add_subdirectory(tests)
 
 configure_file(etc/ForceSensorCalibration.in.yaml
                "${CMAKE_CURRENT_BINARY_DIR}/etc/ForceSensorCalibration.yaml")

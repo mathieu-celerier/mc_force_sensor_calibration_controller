@@ -1,0 +1,3 @@
+add_executable(test_inertial_calibration test_inertial_calibration.cpp)
+target_link_libraries(test_inertial_calibration PRIVATE ForceSensorCalibration mc_rtc::mc_rbdyn)
+add_test(NAME test_inertial_calibration COMMAND test_inertial_calibration)

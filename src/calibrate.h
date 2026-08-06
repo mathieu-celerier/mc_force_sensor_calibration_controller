@@ -93,8 +93,19 @@ InitialGuess computeInitialGuessFromModel(const mc_rbdyn::Robot & robot,
                                           bool includeParent = false,
                                           bool verbose = false);
 
+/** Rotational inertia of the tool (everything downstream of the force sensor, same bodies as
+ * computeInitialGuessFromModel), about its own center of mass, expressed in the sensor's
+ * parent body frame axes. Used as a fixed (non-fit) input to account for the tool's rotational
+ * inertial wrench (I*alpha + omega x I*omega) during the calibration motion instead of only
+ * its translational inertia (mass*a_com). Only an approximation once the fitted CoM diverges
+ * from the model's nominal CoM, but far better than omitting rotational inertia entirely. */
+Eigen::Matrix3d computeToolInertia(const mc_rbdyn::Robot & robot,
+                                   const std::string & sensor,
+                                   bool includeParent = false);
+
 CalibrationResult calibrate(const mc_rbdyn::Robot & robot,
                             const std::string & sensor,
                             const Measurements & measurements,
                             const InitialGuess & initialGuess,
+                            const Eigen::Matrix3d & I_com = Eigen::Matrix3d::Zero(),
                             bool verbose = false);

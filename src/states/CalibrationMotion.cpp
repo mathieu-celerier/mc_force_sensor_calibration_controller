@@ -5,6 +5,7 @@
 void CalibrationMotion::start(mc_control::fsm::Controller & ctl)
 {
   ctl.datastore().make_call("CalibrationMotion::Stop", [this]() { interrupted_ = true; });
+  ctl.datastore().make<std::map<std::string, std::pair<double, double>>>("CalibrationMotion::JointDerivatives");
   auto & robot = ctl.robot();
   auto robotConf = ctl.config()("robots")(robot.name());
   if(!robotConf.has("motion"))
@@ -39,10 +40,24 @@ void CalibrationMotion::start(mc_control::fsm::Controller & ctl)
     auto actualUpper = robot.qu()[jidx][0];
     auto actualRange = actualUpper - actualLower;
 
-    // Reduced range
+    // Reduced range, symmetric around the joint's range midpoint by default
     const auto range = percentLimits * actualRange;
-    const auto lower = actualLower + (actualRange - range) / 2;
-    const auto upper = actualUpper - (actualRange - range) / 2;
+    auto lower = actualLower + (actualRange - range) / 2;
+    auto upper = actualUpper - (actualRange - range) / 2;
+
+    // Optional explicit bounds (e.g. to keep an asymmetric collision-free window instead of
+    // the symmetric percentLimits shrink above) override the computed lower/upper
+    jConfig("lower", lower);
+    jConfig("upper", upper);
+    mc_filter::utils::clampInPlace(lower, actualLower, actualUpper);
+    mc_filter::utils::clampInPlace(upper, actualLower, actualUpper);
+
+    if(lower >= upper)
+    {
+      mc_rtc::log::error("[{}] Invalid motion bounds for joint {}: lower ({}) must be less than upper ({})",
+                         this->name(), name, lower, upper);
+      output("FAILURE");
+    }
 
     if(start < lower || start > upper)
     {
@@ -57,12 +72,22 @@ void CalibrationMotion::start(mc_control::fsm::Controller & ctl)
     // i.e start_dt = f^(-1)(start)
     double start_dt = period * (acos(sqrt(start - lower) / sqrt(upper - lower))) / PI;
     jointUpdates_.emplace_back(
-        /* f(t): periodic function that moves the joint between its limits */
-        [this, postureTask, lower, upper, start_dt, period, name]()
+        /* f(t): periodic function that moves the joint between its limits, along with its
+         * analytically-known velocity/acceleration (exact, no differentiation of a measured
+         * signal needed since we command this trajectory) exposed for CalibrationMotionLogging
+         * to account for the tool's own inertial motion instead of assuming static
+         * equilibrium */
+        [this, &ctl, postureTask, lower, upper, start_dt, period, name]()
         {
           auto t = start_dt + dt_;
-          auto q = lower + (upper - lower) * (1 + cos((2 * PI * t) / period)) / 2;
+          auto w = (2 * PI) / period;
+          auto q = lower + (upper - lower) * (1 + cos(w * t)) / 2;
+          auto qd = -(upper - lower) / 2 * w * sin(w * t);
+          auto qdd = -(upper - lower) / 2 * w * w * cos(w * t);
           postureTask->target({{name, {q}}});
+          auto & derivatives = ctl.datastore().get<std::map<std::string, std::pair<double, double>>>(
+              "CalibrationMotion::JointDerivatives");
+          derivatives[name] = {qd, qdd};
         });
   }
 
@@ -121,6 +146,7 @@ void CalibrationMotion::teardown(mc_control::fsm::Controller & ctl_)
   ctl_.gui()->removeElement({}, "Progress");
   ctl_.gui()->removeElement({}, "Stop Motion");
   ctl_.datastore().remove("CalibrationMotion::Stop");
+  ctl_.datastore().remove("CalibrationMotion::JointDerivatives");
 }
 
 EXPORT_SINGLE_STATE("CalibrationMotion", CalibrationMotion)
